@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice Extractor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c27;
+      --border: #2a2a3d;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --green: #43e97b;
+      --text: #e8e8f0;
+      --muted: #6b6b8a;
+      --radius: 14px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(108,99,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(108,99,255,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 56px;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 8px 20px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .logo span { color: var(--accent); font-weight: 700; }
+
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1.05rem;
+      font-family: 'DM Mono', monospace;
+      font-weight: 300;
+    }
+
+    /* Upload Zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 56px 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    .upload-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(108,99,255,0.08) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--surface2);
+    }
+
+    .upload-zone:hover::before, .upload-zone.drag-over::before {
+      opacity: 1;
+    }
+
+    .upload-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+
+    .upload-zone h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .upload-zone p {
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.85rem;
+      margin-bottom: 24px;
+    }
+
+    .browse-btn {
+      background: linear-gradient(135deg, var(--accent), #8b7ff5);
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 100px;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .browse-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(108,99,255,0.4);
+    }
+
+
+    /* File Preview List */
+    .file-list {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .file-chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 6px 14px 6px 10px;
+      font-size: 0.82rem;
+      font-family: 'DM Mono', monospace;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+    }
+
+    .file-chip .remove {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    .file-chip .remove:hover { color: var(--accent2); }
+
+    /* Extract Button */
+    .extract-btn {
+      width: 100%;
+      margin-top: 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      border: none;
+      padding: 18px;
+      border-radius: var(--radius);
+      font-family: 'Syne', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .extract-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(108,99,255,0.4);
+    }
+
+    .extract-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Loader */
+    .loader {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    /* Progress */
+    .progress-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 100px;
+      margin-top: 12px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 100px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    /* Results Section */
+    .results-section {
+      margin-top: 48px;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .results-header h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 4px 14px;
+      font-size: 0.8rem;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+    }
+
+    .badge.success { border-color: var(--green); color: var(--green); }
+    .badge.error { border-color: var(--accent2); color: var(--accent2); }
+
+    /* Result Card */
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .result-card:hover { border-color: var(--accent); }
+
+    .result-card.success { border-left: 3px solid var(--green); }
+    .result-card.error { border-left: 3px solid var(--accent2); }
+
+    .card-header {
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .card-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.success { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .status-dot.error { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+
+    .card-filename {
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .card-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      margin-top: 2px;
+    }
+
+    .toggle-icon {
+      color: var(--muted);
+      font-size: 18px;
+      transition: transform 0.3s;
+    }
+
+    .toggle-icon.open { transform: rotate(180deg); }
+
+    .card-body {
+      display: none;
+      padding: 0 24px 24px;
+    }
+
+    .card-body.open { display: block; }
+
+    /* Info Grid */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 600px) { .info-grid { grid-template-columns: 1fr; } }
+
+    .info-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .info-box-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .info-box p {
+      font-size: 0.88rem;
+      color: var(--text);
+      line-height: 1.6;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* Totals */
+    .totals-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .total-chip {
+      flex: 1;
+      min-width: 120px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .total-chip .label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .total-chip .value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--green);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* Line Items Table */
+    .table-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .items-table th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .items-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(42,42,61,0.5);
+      color: var(--text);
+      vertical-align: top;
+    }
+
+    .items-table tr:last-child td { border-bottom: none; }
+    .items-table tr:hover td { background: rgba(108,99,255,0.04); }
+
+    /* JSON Toggle */
+    .json-toggle {
+      margin-top: 16px;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .json-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+    .json-block {
+      display: none;
+      margin-top: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text);
+      overflow-x: auto;
+      white-space: pre;
+      line-height: 1.6;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .json-block.open { display: block; }
+
+    /* Saved notice */
+    .saved-notice {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(67, 233, 123, 0.08);
+      border: 1px solid rgba(67, 233, 123, 0.2);
+      border-radius: 100px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      color: var(--green);
+      font-family: 'DM Mono', monospace;
+      margin-top: 8px;
+    }
+
+    /* Error message */
+    .error-msg {
+      color: var(--accent2);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.88rem;
+      padding: 12px;
+      background: rgba(255,101,132,0.08);
+      border-radius: 8px;
+      border: 1px solid rgba(255,101,132,0.2);
+    }
+
+    /* Animations */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="logo">⚡ <span>OpenRouter</span> · AI Powered</div>
+      <h1>Invoice <em>Extractor</em></h1>
+      <p class="subtitle">Upload invoices → Get structured JSON instantly</p>
+    </header>
+
+    <!-- Upload Zone -->
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-icon">🧾</div>
+      <h3>Drop your invoice images here</h3>
+      <p>Supports JPG, PNG, WEBP, GIF · Up to 10MB each · Multiple files supported</p>
+      <label class="browse-btn" for="fileInput" onclick="event.stopPropagation()">
+        📂 Browse Files
+      </label>
+      <input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
+      <div class="file-list" id="fileList"></div>
+    </div>
+
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <button class="extract-btn" id="extractBtn" disabled onclick="extractInvoices()">
+      <div class="loader" id="loader"></div>
+      <span id="btnText">🚀 Extract Invoice Data</span>
+    </button>
+
+    <!-- Results -->
+    <div class="results-section hidden" id="resultsSection">
+      <div class="results-header">
+        <h2>Extraction Results</h2>
+        <span class="badge" id="resultsBadge"></span>
+      </div>
+      <div id="resultsList"></div>
+    </div>
+
+  </div>
+
+  <script>
+    let selectedFiles = [];
+
+    // ─── Drag & Drop ──────────────────────────────────────────────────────────
+
+    const uploadZone = document.getElementById('uploadZone');
+
+    uploadZone.addEventListener('click', (e) => {
+      if (e.target === uploadZone || e.target.tagName === 'H3' || e.target.tagName === 'P' || e.target.classList.contains('upload-icon')) {
+        document.getElementById('fileInput').click();
+      }
+    });
+
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('drag-over');
+    });
+
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('drag-over');
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      addFiles(files);
+    });
+
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      addFiles(Array.from(e.target.files));
+      e.target.value = '';
+    });
+
+    function addFiles(files) {
+      files.forEach(f => {
+        if (!selectedFiles.find(x => x.name === f.name && x.size === f.size)) {
+          selectedFiles.push(f);
+        }
+      });
+      renderFileList();
+    }
+
+    function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      renderFileList();
+    }
+
+    function renderFileList() {
+      const list = document.getElementById('fileList');
+      list.innerHTML = selectedFiles.map((f, i) => `
+        <div class="file-chip">
+          🖼️ ${f.name}
+          <span class="remove" onclick="removeFile(${i})">×</span>
+        </div>
+      `).join('');
+      document.getElementById('extractBtn').disabled = selectedFiles.length === 0;
+    }
+
+    // ─── Extract ──────────────────────────────────────────────────────────────
+
+    async function extractInvoices() {
+      if (selectedFiles.length === 0) return;
+
+      const btn = document.getElementById('extractBtn');
+      const loader = document.getElementById('loader');
+      const btnText = document.getElementById('btnText');
+      const progressBar = document.getElementById('progressBar');
+      const progressFill = document.getElementById('progressFill');
+
+      btn.disabled = true;
+      loader.style.display = 'block';
+      btnText.textContent = `Extracting ${selectedFiles.length} invoice(s)...`;
+      progressBar.style.display = 'block';
+      progressFill.style.width = '10%';
+
+      const formData = new FormData();
+      selectedFiles.forEach(f => formData.append('invoices', f));
+
+      try {
+        progressFill.style.width = '40%';
+
+        const res = await fetch('/api/extract-multiple', {
+          method: 'POST',
+          body: formData,
+        });
+
+        progressFill.style.width = '90%';
+        const json = await res.json();
+        progressFill.style.width = '100%';
+
+        setTimeout(() => {
+          progressBar.style.display = 'none';
+          progressFill.style.width = '0%';
+        }, 600);
+
+        if (json.success) {
+          renderResults(json.results);
+        } else {
+          alert('Error: ' + json.error);
+        }
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        loader.style.display = 'none';
+        btnText.textContent = '🚀 Extract Invoice Data';
+      }
+    }
+
+    // ─── Render Results ───────────────────────────────────────────────────────
+
+    function renderResults(results) {
+      const section = document.getElementById('resultsSection');
+      const list = document.getElementById('resultsList');
+      const badge = document.getElementById('resultsBadge');
+
+      const ok = results.filter(r => r.success).length;
+      badge.textContent = `${ok}/${results.length} succeeded`;
+      badge.className = 'badge ' + (ok === results.length ? 'success' : 'error');
+
+      list.innerHTML = results.map((r, i) => renderCard(r, i)).join('');
+      section.classList.remove('hidden');
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function renderCard(r, i) {
+      if (!r.success) {
+        return `
+          <div class="result-card error">
+            <div class="card-header">
+              <div class="card-header-left">
+                <div class="status-dot error"></div>
+                <div>
+                  <div class="card-filename">${r.file}</div>
+                  <div class="card-meta">Extraction failed</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-body open">
+              <div class="error-msg">❌ ${r.error}</div>
+            </div>
+          </div>`;
+      }
+
+      const d = r.data;
+      return `
+        <div class="result-card success" id="card-${i}">
+          <div class="card-header" onclick="toggleCard(${i})">
+            <div class="card-header-left">
+              <div class="status-dot success"></div>
+              <div>
+                <div class="card-filename">${r.file}</div>
+                <div class="card-meta">Invoice #${d.invoice_number} · ${d.invoice_date} · ${d.line_items.length} item(s)</div>
+              </div>
+            </div>
+            <div class="toggle-icon open" id="toggle-${i}">▼</div>
+          </div>
+          <div class="card-body open" id="body-${i}">
+
+            <div class="info-grid">
+              <div class="info-box">
+                <div class="info-box-label">🏢 Vendor</div>
+                <p><strong>${d.vendor.name}</strong><br/>
+                ${d.vendor.address}<br/>
+                Tax ID: ${d.vendor.tax_id}<br/>
+                IBAN: ${d.vendor.iban}</p>
+              </div>
+              <div class="info-box">
+                <div class="info-box-label">👤 Client</div>
+                <p><strong>${d.client.name}</strong><br/>
+                ${d.client.address}<br/>
+                Tax ID: ${d.client.tax_id}</p>
+              </div>
+            </div>
+
+            <div class="totals-row">
+              <div class="total-chip">
+                <div class="label">Net Worth</div>
+                <div class="value">$${d.totals.net_worth.toFixed(2)}</div>
+              </div>
+              <div class="total-chip">
+                <div class="label">VAT</div>
+                <div class="value">$${d.totals.vat.toFixed(2)}</div>
+              </div>
+              <div class="total-chip">
+                <div class="label">Grand Total</div>
+                <div class="value">$${d.totals.grand_total.toFixed(2)}</div>
+              </div>
+            </div>
+
+            <div class="table-label">📦 Line Items</div>
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Qty</th>
+                  <th>Unit</th>
+                  <th>Unit Price</th>
+                  <th>Net Worth</th>
+                  <th>VAT%</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${d.line_items.map(item => `
+                  <tr>
+                    <td>${item.description}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.unit_of_measure}</td>
+                    <td>$${item.unit_price.toFixed(2)}</td>
+                    <td>$${item.net_worth.toFixed(2)}</td>
+                    <td>${item.vat_percent}%</td>
+                    <td>$${item.line_total.toFixed(2)}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+
+            ${r.saved_as ? `<div class="saved-notice">💾 Saved as: ${r.saved_as}</div>` : ''}
+
+            <button class="json-toggle" onclick="toggleJson(${i})">{ } View Raw JSON</button>
+            <div class="json-block" id="json-${i}">${JSON.stringify(d, null, 2)}</div>
+          </div>
+        </div>`;
+    }
+
+    function toggleCard(i) {
+      const body = document.getElementById(`body-${i}`);
+      const icon = document.getElementById(`toggle-${i}`);
+      body.classList.toggle('open');
+      icon.classList.toggle('open');
+    }
+
+    function toggleJson(i) {
+      document.getElementById(`json-${i}`).classList.toggle('open');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+{
+  "file": "invoice_3.jpg",
+  "extracted_at": "2026-03-20T11:00:26.322Z",
+  "data": {
+    "vendor": {
+      "name": "Kane-Morgan",
+      "address": "968 Carr Mission Apt. 320, Bernardville, VA 28211",
+      "tax_id": "964-95-3813",
+      "iban": "GB73WCIJ55232646970614"
+    },
+    "client": {
+      "name": "Garcia Inc",
+      "address": "445 Haas Viaduct Suite 454, Michaelhaven, LA 32852",
+      "tax_id": "909-75-5482"
+    },
+    "invoice_number": "49565075",
+    "invoice_date": "2019-10-28",
+    "totals": {
+      "net_worth": 87.94,
+      "vat": 8.79,
+      "grand_total": 96.73
+    },
+    "line_items": [
+      {
+        "description": "Anthropologie Gold Elegant\nSwan Decorative Metal Bottle\nStopper Wine Saver",
+        "quantity": 3,
+        "unit_of_measure": "each",
+        "unit_price": 19.98,
+        "net_worth": 59.94,
+        "vat_percent": 10,
+        "line_total": 65.93
+      },
+      {
+        "description": "Lolita Happy Retirement Wine\nGlass 15 Ounce GLS11-5534H",
+        "quantity": 1,
+        "unit_of_measure": "each",
+        "unit_price": 8,
+        "net_worth": 8,
+        "vat_percent": 10,
+        "line_total": 8.8
+      },
+      {
+        "description": "Lolita \"Congratulations\" Hand\nPainted and Decorated Wine\nGlass NIB",
+        "quantity": 1,
+        "unit_of_measure": "each",
+        "unit_price": 20,
+        "net_worth": 20,
+        "vat_percent": 10,
+        "line_total": 22
+      }
+    ]
+  }
+}
